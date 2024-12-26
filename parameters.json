@@ -1,0 +1,32 @@
+{
+    "overall_dimensions": {
+        "length": 15000,
+        "width": 12000,
+        "max_height": 5000,
+        "units": "mm"
+    },
+    "columns": {
+        "count": 4,
+        "min_height": 3000,
+        "max_height": 5000,
+        "base_radius": 400,
+        "top_radius": 250,
+        "ground_blend_radius": 800
+    },
+    "roof": {
+        "thickness": 200,
+        "curve_twist_factor": 0.3,
+        "subdivision_level": 4
+    },
+    "seating": {
+        "height": 450,
+        "extension_length": 2000,
+        "thickness": 80,
+        "ergonomic_curve_depth": 50
+    },
+    "structural": {
+        "min_column_thickness": 200,
+        "min_roof_thickness": 150,
+        "max_cantilever": 3000
+    }
+}

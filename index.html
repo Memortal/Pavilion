@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pavilion Documentation</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #000000;
+            color: #ff69b4;
+            font-family: 'VT323', monospace;
+            font-size: 18px;
+            line-height: 1.4;
+        }
+
+        #navigation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 200px;
+            height: 100%;
+            background-color: #1a1a1a;
+            padding: 20px;
+            box-sizing: border-box;
+            border-right: 2px solid #ff69b4;
+            z-index: 1000;
+        }
+
+        #navigation a {
+            display: block;
+            color: #ff69b4;
+            text-decoration: none;
+            margin-bottom: 10px;
+            padding: 5px;
+            border: 1px solid #ff69b4;
+            transition: all 0.3s ease;
+        }
+
+        #navigation a:hover {
+            background-color: #ff69b4;
+            color: #000000;
+        }
+
+        #content {
+            margin-left: 220px;
+            padding: 20px;
+            max-width: 1200px;
+        }
+
+        #viewer-container {
+            position: fixed;
+            top: 0;
+            left: 220px;
+            right: 0;
+            bottom: 0;
+            background: #000000;
+            display: none;
+        }
+
+        #viewer {
+            width: 100%;
+            height: 100%;
+        }
+
+        #controls-info {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: #ff69b4;
+            padding: 10px;
+            border: 1px solid #ff69b4;
+            font-family: 'VT323', monospace;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: #ffffff;
+            text-transform: uppercase;
+            border-bottom: 2px solid #ff69b4;
+            padding-bottom: 5px;
+        }
+
+        pre {
+            background-color: #1a1a1a;
+            padding: 15px;
+            border: 1px solid #ff69b4;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: 'VT323', monospace;
+            color: #ff69b4;
+        }
+
+        img {
+            max-width: 100%;
+            border: 2px solid #ff69b4;
+            margin: 10px 0;
+        }
+
+        ul, ol {
+            border-left: 2px solid #ff69b4;
+            padding-left: 20px;
+        }
+
+        li {
+            margin: 5px 0;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 15px 0;
+        }
+
+        th, td {
+            border: 1px solid #ff69b4;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+
+        ::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #000000;
+            border: 1px solid #ff69b4;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #ff69b4;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff1493;
+        }
+
+        #content::before {
+            content: "C:\\PAVILION>";
+            display: block;
+            margin-bottom: 20px;
+            color: #ff69b4;
+            font-weight: bold;
+        }
+
+        #content::after {
+            content: "_";
+            display: inline-block;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        a {
+            color: #ff69b4;
+            text-decoration: none;
+            border-bottom: 1px dotted #ff69b4;
+        }
+
+        a:hover {
+            border-bottom: 1px solid #ff69b4;
+            background-color: #1a1a1a;
+        }
+    </style>
+</head>
+<body>
+    <div id="navigation">
+        <a href="#" onclick="show3DViewer()">3D Viewer</a>
+        <a href="#" onclick="loadMD('README.md')">Overview</a>
+        <a href="#" onclick="loadMD('instructions/01_framework.md')">1. Framework</a>
+        <a href="#" onclick="loadMD('instructions/02_columns.md')">2. Columns</a>
+        <a href="#" onclick="loadMD('instructions/03_roof.md')">3. Roof</a>
+        <a href="#" onclick="loadMD('instructions/04_seating.md')">4. Seating</a>
+        <a href="#" onclick="loadMD('instructions/05_finishing.md')">5. Finishing</a>
+        <a href="#" onclick="loadMD('instructions/06_rendering.md')">6. Renderings</a>
+        <a href="#" onclick="loadJSON('parameters.json')">Parameters</a>
+    </div>
+    <div id="content"></div>
+    <div id="viewer-container">
+        <canvas id="viewer"></canvas>
+        <div id="controls-info">
+            Left Mouse: Rotate | Middle Mouse: Pan | Right Mouse/Wheel: Zoom
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let isViewerInitialized = false;
+
+        function initViewer() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
+            scene.fog = new THREE.Fog(0x000000, 20, 100);
+
+            camera = new THREE.PerspectiveCamera(75, (window.innerWidth - 220) / window.innerHeight, 0.1, 1000);
+            camera.position.set(15, 10, 15);
+            camera.lookAt(0, 0, 0);
+            
+            renderer = new THREE.WebGLRenderer({
+                canvas: document.querySelector('#viewer'),
+                antialias: true
+            });
+            renderer.setSize(window.innerWidth - 220, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 5;
+            controls.maxDistance = 50;
+
+            // Enhanced lighting setup
+            const ambientLight = new THREE.AmbientLight(0xff69b4, 0.2);
+            scene.add(ambientLight);
+
+            const mainLight = new THREE.DirectionalLight(0xff69b4, 0.8);
+            mainLight.position.set(10, 10, 10);
+            mainLight.castShadow = true;
+            mainLight.shadow.camera.near = 0.1;
+            mainLight.shadow.camera.far = 100;
+            mainLight.shadow.camera.left = -15;
+            mainLight.shadow.camera.right = 15;
+            mainLight.shadow.camera.top = 15;
+            mainLight.shadow.camera.bottom = -15;
+            mainLight.shadow.mapSize.width = 2048;
+            mainLight.shadow.mapSize.height = 2048;
+            scene.add(mainLight);
+
+            const fillLight = new THREE.DirectionalLight(0xff69b4, 0.3);
+            fillLight.position.set(-5, 5, -5);
+            scene.add(fillLight);
+
+            // Calculate roof height and normal at any point
+            function calculateRoofPoint(x, z) {
+                const u = (x + 7.5) / 15;
+                const v = (z + 7.5) / 15;
+                
+                const baseHeight = 5;
+                const wave1 = Math.sin(u * Math.PI * 2) * Math.sin(v * Math.PI * 2) * 1.5;
+                const wave2 = Math.sin(u * Math.PI * 3) * Math.sin(v * Math.PI * 2) * 0.5;
+                const twist = (u - 0.5) * (v - 0.5) * 2;
+                
+                const y = baseHeight + wave1 + wave2 + twist;
+
+                // Calculate surface normal
+                const du = Math.PI * 2 / 15;
+                const dv = Math.PI * 2 / 15;
+                
+                // Partial derivatives for normal calculation
+                const dx = Math.cos(u * Math.PI * 2) * Math.sin(v * Math.PI * 2) * 1.5 * du +
+                          Math.cos(u * Math.PI * 3) * Math.sin(v * Math.PI * 2) * 0.5 * du * 1.5 +
+                          (v - 0.5) * 2 / 15;
+                
+                const dz = Math.sin(u * Math.PI * 2) * Math.cos(v * Math.PI * 2) * 1.5 * dv +
+                          Math.sin(u * Math.PI * 3) * Math.cos(v * Math.PI * 2) * 0.5 * dv +
+                          (u - 0.5) * 2 / 15;
+
+                const normal = new THREE.Vector3(-dx, 1, -dz).normalize();
+
+                return { position: new THREE.Vector3(x, y, z), normal: normal };
+            }
+
+            // Calculate intersection curve between column and roof surface
+            function calculateIntersectionCurve(columnPosition, columnRadius) {
+                const intersectionPoints = [];
+                const numPoints = 32;
+                
+                // Calculate points around column circumference
+                for (let i = 0; i <= numPoints; i++) {
+                    const angle = (i / numPoints) * Math.PI * 2;
+                    const xOffset = Math.cos(angle) * columnRadius;
+                    const zOffset = Math.sin(angle) * columnRadius;
+                    
+                    // Column surface point in world space
+                    const x = xOffset;
+                    const z = zOffset;
+                    
+                    // Find roof height at this point relative to column position
+                    const worldX = columnPosition[0] + xOffset;
+                    const worldZ = columnPosition[2] + zOffset;
+                    const roofPoint = calculateRoofPoint(worldX, worldZ);
+                    
+                    // Store point relative to column base
+                    intersectionPoints.push({
+                        position: new THREE.Vector3(x, roofPoint.position.y, z),
+                        normal: roofPoint.normal
+                    });
+                }
+                
+                return intersectionPoints;
+            }
+
+            // Create organic column with precise intersection detail
+            function createOrganicColumn(position) {
+                const group = new THREE.Group();
+                
+                // Column parameters
+                const params = {
+                    baseRadius: 0.8,
+                    topRadius: 0.4,
+                    segments: 32,
+                    detailHeight: 0.2  // Height of intersection detail
+                };
+
+                // Calculate intersection curve
+                const intersectionCurve = calculateIntersectionCurve(position, params.topRadius);
+                const averageHeight = intersectionCurve.reduce((sum, p) => sum + p.position.y, 0) / intersectionCurve.length;
+
+                // Create main column profile
+                const points = [];
+                const segments = params.segments;
+                
+                for (let i = 0; i <= segments; i++) {
+                    const t = i / segments;
+                    const y = t * averageHeight;
+                    const radius = params.baseRadius * Math.pow(1 - t, 1.5) + params.topRadius * t;
+                    const curve = 0.2 * Math.sin(t * Math.PI);
+                    points.push(new THREE.Vector2(radius + curve, y));
+                }
+
+                // Create column
+                const geometry = new THREE.LatheGeometry(points, 32);
+                const material = new THREE.MeshPhongMaterial({
+                    color: 0xff69b4,
+                    shininess: 100,
+                    specular: 0xff1493
+                });
+                const column = new THREE.Mesh(geometry, material);
+                column.castShadow = true;
+                column.receiveShadow = true;
+                group.add(column);
+
+                // Create base details
+                const baseFlareGeo = new THREE.TorusGeometry(params.baseRadius + 0.3, 0.2, 16, 32);
+                const baseFlare = new THREE.Mesh(baseFlareGeo, material);
+                baseFlare.rotation.x = Math.PI / 2;
+                baseFlare.castShadow = true;
+                baseFlare.receiveShadow = true;
+                group.add(baseFlare);
+
+                for (let i = 1; i <= 3; i++) {
+                    const ringGeo = new THREE.TorusGeometry(params.baseRadius - i * 0.1, 0.05, 12, 32);
+                    const ring = new THREE.Mesh(ringGeo, material);
+                    ring.position.y = i * 0.3;
+                    ring.rotation.x = Math.PI / 2;
+                    ring.castShadow = true;
+                    ring.receiveShadow = true;
+                    group.add(ring);
+                }
+
+                // Create intersection detail following the exact intersection curve
+                function createIntersectionDetail() {
+                    const detailGroup = new THREE.Group();
+
+                    // Create vertices for upper and lower rings
+                    const upperPoints = [];
+                    const lowerPoints = [];
+                    const positions = [];
+                    const normals = [];
+                    const indices = [];
+
+                    // Generate detail profile points
+                    intersectionCurve.forEach((point, i) => {
+                        const normal = point.normal;
+                        const pos = point.position;
+                        const nextPoint = intersectionCurve[(i + 1) % intersectionCurve.length];
+                        
+                        // Calculate tangent and bitangent
+                        const tangent = new THREE.Vector3()
+                            .subVectors(nextPoint.position, pos)
+                            .normalize();
+                        const bitangent = new THREE.Vector3()
+                            .crossVectors(normal, tangent)
+                            .normalize();
+
+                        // Create detail profile
+                        const upperOffset = new THREE.Vector3()
+                            .addScaledVector(normal, params.detailHeight * 0.5);
+                        const lowerOffset = new THREE.Vector3()
+                            .addScaledVector(normal, -params.detailHeight * 0.5);
+
+                        // Add points for the detail band
+                        upperPoints.push(pos.clone().add(upperOffset));
+                        lowerPoints.push(pos.clone().add(lowerOffset));
+
+                        // Add vertices
+                        positions.push(
+                            pos.x + upperOffset.x, pos.y + upperOffset.y, pos.z + upperOffset.z,
+                            pos.x + lowerOffset.x, pos.y + lowerOffset.y, pos.z + lowerOffset.z
+                        );
+
+                        // Add normals
+                        normals.push(
+                            normal.x, normal.y, normal.z,
+                            normal.x, normal.y, normal.z
+                        );
+                    });
+
+                    // Create faces
+                    for (let i = 0; i < intersectionCurve.length - 1; i++) {
+                        const base = i * 2;
+                        indices.push(
+                            base, base + 1, base + 2,
+                            base + 1, base + 3, base + 2
+                        );
+                    }
+
+                    // Close the loop
+                    const lastBase = (intersectionCurve.length - 1) * 2;
+                    indices.push(
+                        lastBase, lastBase + 1, 0,
+                        lastBase + 1, 1, 0
+                    );
+
+                    // Create detail mesh
+                    const geometry = new THREE.BufferGeometry();
+                    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+                    geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+                    geometry.setIndex(indices);
+
+                    const detailMesh = new THREE.Mesh(geometry, material);
+                    detailMesh.castShadow = true;
+                    detailMesh.receiveShadow = true;
+                    detailGroup.add(detailMesh);
+
+                    // Add decorative lines
+                    const lineMaterial = new THREE.LineBasicMaterial({
+                        color: 0xff69b4,
+                        transparent: true,
+                        opacity: 0.7
+                    });
+
+                    // Create upper and lower decorative lines
+                    const upperLineGeometry = new THREE.BufferGeometry().setFromPoints(upperPoints);
+                    const lowerLineGeometry = new THREE.BufferGeometry().setFromPoints(lowerPoints);
+
+                    const upperLine = new THREE.Line(upperLineGeometry, lineMaterial);
+                    const lowerLine = new THREE.Line(lowerLineGeometry, lineMaterial);
+                    
+                    detailGroup.add(upperLine);
+                    detailGroup.add(lowerLine);
+
+                    return detailGroup;
+                }
+
+                group.add(createIntersectionDetail());
+                group.position.set(position[0], 0, position[2]);
+                return group;
+            }
+
+            // Create organic roof
+            function createOrganicRoof() {
+                const geometry = new THREE.ParametricBufferGeometry((u, v, target) => {
+                    const x = (u - 0.5) * 15;
+                    const z = (v - 0.5) * 15;
+                    const roofPoint = calculateRoofPoint(x, z);
+                    target.set(x, roofPoint.position.y, z);
+                }, 50, 50);
+
+                const material = new THREE.MeshPhongMaterial({
+                    color: 0xff69b4,
+                    shininess: 100,
+                    specular: 0xff1493,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.7
+                });
+
+                const roof = new THREE.Mesh(geometry, material);
+                roof.castShadow = true;
+                roof.receiveShadow = true;
+                return roof;
+            }
+
+            // Create S-curve seating with stacked surfaces
+            function createSeating() {
+                const group = new THREE.Group();
+
+                // Seating parameters
+                const params = {
+                    length: 8,
+                    width: 0.8,
+                    height: 0.5,
+                    segments: 128,
+                    curveIntensity: 2,
+                    verticalSpacing: 0.8,  // Height between surfaces
+                    surfaceThickness: 0.1
+                };
+
+                // Define constant vectors
+                const UP = new THREE.Vector3(0, 1, 0);
+
+                // Create base S-curve path
+                const seatCurve = new THREE.CubicBezierCurve3(
+                    new THREE.Vector3(-params.length/2, 0, -1),
+                    new THREE.Vector3(-params.length/4, 0, 1),
+                    new THREE.Vector3(params.length/4, 0, -1),
+                    new THREE.Vector3(params.length/2, 0, 1)
+                );
+
+                // Function to create a single seating surface
+                function createSeatingSurface(heightOffset = 0) {
+                    const points = seatCurve.getPoints(params.segments);
+                    const seatGeometry = new THREE.BufferGeometry();
+                    const positions = [];
+                    const normals = [];
+                    const uvs = [];
+
+                    // Generate seat mesh with ergonomic curve
+                    for (let i = 0; i < params.segments; i++) {
+                        const t = i / (params.segments - 1);
+                        const point = points[i];
+                        const nextPoint = points[Math.min(i + 1, params.segments - 1)];
+                        
+                        const tangent = new THREE.Vector3()
+                            .subVectors(nextPoint, point)
+                            .normalize();
+                        const right = new THREE.Vector3()
+                            .crossVectors(tangent, UP)
+                            .normalize();
+
+                        // Create seat profile points
+                        const seatProfile = [];
+                        for (let j = 0; j <= 8; j++) {
+                            const t = j / 8;
+                            const profileX = Math.cos(t * Math.PI) * params.width * 0.5;
+                            const profileY = Math.sin(t * Math.PI * 0.5) * params.surfaceThickness;
+                            seatProfile.push(new THREE.Vector2(profileX, profileY));
+                        }
+
+                        // Add vertices for the seat profile
+                        seatProfile.forEach((profile, j) => {
+                            const offset = new THREE.Vector3()
+                                .addScaledVector(right, profile.x)
+                                .addScaledVector(UP, profile.y + heightOffset);
+                            
+                            const vertex = point.clone().add(offset);
+                            positions.push(vertex.x, vertex.y, vertex.z);
+                            
+                            const normal = new THREE.Vector3()
+                                .addScaledVector(right, profile.x)
+                                .addScaledVector(UP, profile.y)
+                                .normalize();
+                            normals.push(normal.x, normal.y, normal.z);
+                            
+                            uvs.push(t, j / 8);
+                        });
+                    }
+
+                    // Create faces
+                    const indices = [];
+                    const verticesPerRow = 9;
+                    for (let i = 0; i < params.segments - 1; i++) {
+                        for (let j = 0; j < verticesPerRow - 1; j++) {
+                            const current = i * verticesPerRow + j;
+                            const next = current + verticesPerRow;
+                            indices.push(current, next, current + 1);
+                            indices.push(current + 1, next, next + 1);
+                        }
+                    }
+
+                    seatGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+                    seatGeometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+                    seatGeometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+                    seatGeometry.setIndex(indices);
+
+                    return seatGeometry;
+                }
+
+                // Create materials
+                const material = new THREE.MeshPhongMaterial({
+                    color: 0xff69b4,
+                    shininess: 100,
+                    specular: 0xff1493
+                });
+
+                // Create stacked seating surfaces
+                const heights = [0, params.verticalSpacing];
+                const seats = heights.map(height => {
+                    const seat = new THREE.Mesh(createSeatingSurface(height), material);
+                    seat.castShadow = true;
+                    seat.receiveShadow = true;
+                    return seat;
+                });
+                seats.forEach(seat => group.add(seat));
+
+                // Create vertical supports between surfaces
+                function createSupports() {
+                    const numSupports = 8;
+                    for (let i = 0; i <= numSupports; i++) {
+                        const t = i / numSupports;
+                        const point = seatCurve.getPoint(t);
+                        
+                        // Create main support cylinder
+                        const supportGeo = new THREE.CylinderGeometry(0.05, 0.05, params.verticalSpacing, 8);
+                        const support = new THREE.Mesh(supportGeo, material);
+                        
+                        // Position support
+                        support.position.set(point.x, params.verticalSpacing * 0.5, point.z);
+                        
+                        support.castShadow = true;
+                        support.receiveShadow = true;
+                        group.add(support);
+
+                        // Add decorative rings at connection points
+                        const ringGeo = new THREE.TorusGeometry(0.1, 0.02, 16, 32);
+                        [0, params.verticalSpacing].forEach(height => {
+                            const ring = new THREE.Mesh(ringGeo, material);
+                            ring.position.set(point.x, height, point.z);
+                            ring.rotation.x = Math.PI / 2;
+                            ring.castShadow = true;
+                            group.add(ring);
+                        });
+                    }
+                }
+
+                createSupports();
+
+                // Add ground connection points
+                const addGroundConnection = (position) => {
+                    const baseGeo = new THREE.CylinderGeometry(0.3, 0.4, 0.1, 16);
+                    const base = new THREE.Mesh(baseGeo, material);
+                    base.position.copy(position);
+                    base.position.y = 0.05;
+                    base.castShadow = true;
+                    base.receiveShadow = true;
+                    group.add(base);
+                };
+
+                // Add ground connections at key points
+                [0, 0.5, 1].forEach(t => {
+                    const pos = seatCurve.getPoint(t);
+                    addGroundConnection(pos);
+                });
+
+                group.position.set(0, 0.2, 0);
+                return group;
+            }
+
+            // Create ground details
+            function createGroundDetails() {
+                const group = new THREE.Group();
+
+                // Create main platform
+                const platformGeo = new THREE.CircleGeometry(12, 64);
+                const platformMat = new THREE.MeshPhongMaterial({
+                    color: 0x1a1a1a,
+                    shininess: 20,
+                    side: THREE.DoubleSide
+                });
+                const platform = new THREE.Mesh(platformGeo, platformMat);
+                platform.rotation.x = -Math.PI / 2;
+                platform.position.y = 0.02;
+                platform.receiveShadow = true;
+                group.add(platform);
+
+                // Add decorative ground patterns
+                for (let i = 0; i < 5; i++) {
+                    const curve = new THREE.EllipseCurve(
+                        0, 0,
+                        8 + i * 0.5, 8 + i * 0.5,
+                        0, Math.PI * 2,
+                        false,
+                        i * Math.PI / 5
+                    );
+
+                    const points = curve.getPoints(50);
+                    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                    const line = new THREE.Line(
+                        geometry,
+                        new THREE.LineBasicMaterial({ 
+                            color: 0xff69b4,
+                            transparent: true,
+                            opacity: 0.3 + (i * 0.1)
+                        })
+                    );
+                    line.position.y = 0.03 + i * 0.01;
+                    line.rotation.x = -Math.PI / 2;
+                    group.add(line);
+                }
+
+                // Add radial lines
+                for (let i = 0; i < 12; i++) {
+                    const angle = (i / 12) * Math.PI * 2;
+                    const lineGeo = new THREE.BufferGeometry().setFromPoints([
+                        new THREE.Vector3(0, 0.03, 0),
+                        new THREE.Vector3(Math.cos(angle) * 10, 0.03, Math.sin(angle) * 10)
+                    ]);
+                    const line = new THREE.Line(
+                        lineGeo,
+                        new THREE.LineBasicMaterial({ 
+                            color: 0xff69b4,
+                            transparent: true,
+                            opacity: 0.2
+                        })
+                    );
+                    group.add(line);
+                }
+
+                return group;
+            }
+
+            // Create surface contour lines
+            function createContourLines() {
+                const group = new THREE.Group();
+                const lineMaterial = new THREE.LineBasicMaterial({
+                    color: 0xffffff,
+                    transparent: true,
+                    opacity: 0.3,
+                    linewidth: 1
+                });
+
+                // Parameters for contour lines
+                const gridSize = 20;
+                const numLines = 10;
+                const xSpacing = gridSize / numLines;
+                const zSpacing = gridSize / numLines;
+
+                // Create horizontal contour lines
+                for (let i = 0; i <= numLines; i++) {
+                    const points = [];
+                    const z = -gridSize/2 + i * zSpacing;
+                    
+                    // Sample points along x-axis
+                    for (let x = -gridSize/2; x <= gridSize/2; x += 0.2) {
+                        const roofPoint = calculateRoofPoint(x, z);
+                        points.push(roofPoint.position);
+                    }
+
+                    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                    const line = new THREE.Line(geometry, lineMaterial);
+                    group.add(line);
+                }
+
+                // Create vertical contour lines
+                for (let i = 0; i <= numLines; i++) {
+                    const points = [];
+                    const x = -gridSize/2 + i * xSpacing;
+                    
+                    // Sample points along z-axis
+                    for (let z = -gridSize/2; z <= gridSize/2; z += 0.2) {
+                        const roofPoint = calculateRoofPoint(x, z);
+                        points.push(roofPoint.position);
+                    }
+
+                    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                    const line = new THREE.Line(geometry, lineMaterial);
+                    group.add(line);
+                }
+
+                return group;
+            }
+
+            // Calculate column positions and heights
+            const columnBasePositions = [
+                [-5, -5],
+                [5, -5],
+                [-5, 5],
+                [5, 5]
+            ];
+
+            const columnPositions = columnBasePositions.map(pos => {
+                const x = pos[0];
+                const z = pos[1];
+                const roofPoint = calculateRoofPoint(x, z);
+                return [x, roofPoint.position.y, z];
+            });
+
+            // Add all elements to scene
+            scene.add(createOrganicRoof());
+            scene.add(createContourLines());
+            columnPositions.forEach(pos => {
+                scene.add(createOrganicColumn(pos));
+            });
+            scene.add(createSeating());
+            scene.add(createGroundDetails());
+
+            // Add grid helper
+            const gridHelper = new THREE.GridHelper(30, 30, 0xff69b4, 0x1a1a1a);
+            gridHelper.position.y = 0.01;
+            scene.add(gridHelper);
+
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            window.addEventListener('resize', onWindowResize, false);
+            isViewerInitialized = true;
+        }
+
+        function onWindowResize() {
+            if (isViewerInitialized) {
+                camera.aspect = (window.innerWidth - 220) / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth - 220, window.innerHeight);
+            }
+        }
+
+        function show3DViewer() {
+            document.getElementById('content').style.display = 'none';
+            document.getElementById('viewer-container').style.display = 'block';
+            if (!isViewerInitialized) {
+                initViewer();
+            }
+        }
+
+        function loadMD(filename) {
+            document.getElementById('content').style.display = 'block';
+            document.getElementById('viewer-container').style.display = 'none';
+            fetch(filename)
+                .then(response => response.text())
+                .then(text => {
+                    document.getElementById('content').innerHTML = marked.parse(text);
+                })
+                .catch(error => {
+                    console.error('Error loading markdown:', error);
+                    document.getElementById('content').innerHTML = 'Error loading content';
+                });
+        }
+
+        function loadJSON(filename) {
+            document.getElementById('content').style.display = 'block';
+            document.getElementById('viewer-container').style.display = 'none';
+            fetch(filename)
+                .then(response => response.text())
+                .then(text => {
+                    document.getElementById('content').innerHTML = '<pre><code>' + text + '</code></pre>';
+                })
+                .catch(error => {
+                    console.error('Error loading JSON:', error);
+                    document.getElementById('content').innerHTML = 'Error loading content';
+                });
+        }
+
+        // Load README.md by default
+        loadMD('README.md');
+    </script>
+</body>
+</html>
