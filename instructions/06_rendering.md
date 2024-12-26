@@ -4,37 +4,25 @@ www.memostudio.design
 ## Visualization Overview
 The following renderings showcase the pavilion's key design features, material qualities, and environmental integration.
 
-## Design Features
+## Renderings
 
-### 1. Column-Roof Intersection
-- Precise geometric intersection calculation
-- Smooth transition detailing
-- Integrated connection elements
-- Structural integrity maintenance
+### 1. Column Base Detail
+![Column Base](/references/alireza8645_An_ultra-modern_organic_pavilion_inspired_by_Zaha_H_0b5e1c82-003a-49d1-9010-3906da8bf04f.png)
 
-### 2. Double-Curved Roof Surface
-- Complex surface geometry
-- Contour line highlighting
-- 10x10 grid of thin white lines
-- Enhanced surface readability
+### 2. Sculptural Form Study
+![Form Study](/references/alireza8645_An_ultra-modern_organic_pavilion_inspired_by_Zaha_H_1bcf82c8-7e42-45c6-bcb6-567f24038f11.png)
 
-### 3. Vertically Stacked Seating
-- Dual-layer S-curve design
-- Vertical support elements
-- Decorative connection rings
-- Ergonomic surface profiles
+### 3. Environmental Integration
+![Environmental](/references/alireza8645_An_ultra-modern_organic_pavilion_inspired_by_Zaha_H_3c642175-a3cc-493d-bce1-836bd037dc73.png)
 
-### 4. Structural Details
-- Column base connections
-- Surface intersection resolution
-- Support element integration
-- Material transition points
+### 4. User Interaction
+![Interaction](/references/alireza8645_An_ultra-modern_organic_pavilion_inspired_by_Zaha_H_71dfd6a2-737f-457b-9604-be5d56c093de.png)
 
-### 5. Visual Elements
-- Surface contour visualization
-- Connection detail expression
-- Material translucency
-- Shadow and light interaction
+### 5. Detail Study
+![Detail](/references/alireza8645_An_ultra-modern_organic_pavilion_inspired_by_Zaha_H_bff3a1c9-9a77-4ec4-9330-4f3ae51a7fe0.png)
+
+### 6. Overall View
+![Overall](/references/alireza8645_An_ultra-modern_organic_pavilion_inspired_by_Zaha_H_c51c2cef-b5de-4a33-9fcf-c39035830bc0.png)
 
 ## Material Properties
 - Primary Structure: Pink metallic finish
